@@ -43,24 +43,20 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
         # Map payload data to Hyperliquid parameters
         ticker = payload.symbol.replace("USDT", "") # 'ETHUSDT' -> 'ETH'
         is_buy = (payload.action.lower() == "buy")
-        
+        avg_price = None
+
         # Place the main order (Market order for simplicity)
-        order_result = exchange.order(
-            name=ticker, 
-            is_buy=is_buy, 
-            sz=payload.size, 
-            limit_px=500000 if is_buy else 10000, # Aggressive price to ensure market execution
-            order_type={"limit": {"tif": "Gtc"}}
-        )
+        order_result = exchange.market_open(ticker, is_buy, payload.size)
+        if order_result["status"] == "ok":
+            for status in order_result["response"]["data"]["statuses"]:
+                try:
+                    filled = status["filled"]
+                    avg_price = filled["avgPx"]
+                    print(f'Order #{filled["oid"]} filled {filled["totalSz"]} @{avg_price}')
+                except KeyError:
+                    print(f'Error: {status["error"]}')
+
         logger.info(f"Main order placed: {order_result}")
-        
-        # Check if the order was filled before trying to access the price
-        if 'filled' in order_result['response']['data']['statuses'][0]:
-            avg_price = float(order_result['response']['data']['statuses'][0]['filled']['avgPx'])
-            logger.info(f"Order filled at avg price: {avg_price}")
-        else:
-            logger.warning("Main order was not immediately filled. TP/SL not placed.")
-            raise HTTPException(status_code=500, detail="Main order not immediately filled. TP/SL placement aborted.")
         
         # Get filled price from the order response
         avg_price = float(order_result['response']['data']['statuses'][0]['filled']['avgPx'])

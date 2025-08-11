@@ -24,7 +24,7 @@ class TradingViewPayload(BaseModel):
     tp_percent: float
     sl_percent: float
 
-router.post("/tradingview-webhook")
+@router.post("/tradingview-webhook") 
 async def handle_tradingview_webhook(payload: TradingViewPayload):
     """
     Receives and validates webhook alerts from TradingView and executes trades on Hyperliquid.

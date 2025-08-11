@@ -44,7 +44,7 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
         ticker = payload.symbol.replace("USDT", "") # 'ETHUSDT' -> 'ETH'
         is_buy = (payload.action.lower() == "buy")
         avg_price = None
-        price_precision = 2
+        price_precision = 0
 
         # Place the main order (Market order for simplicity)
         order_result = exchange.market_open(ticker, is_buy, payload.size)

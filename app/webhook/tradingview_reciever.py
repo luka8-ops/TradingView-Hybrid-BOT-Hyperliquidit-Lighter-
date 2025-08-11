@@ -41,7 +41,7 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
 
     try:
         # Map payload data to Hyperliquid parameters
-        ticker = payload.symbol.replace("USDT", "") # 'ETHUSDT' -> 'ETH'
+        ticker = payload.symbol.replace("USD", "") # 'BTCUSD' -> 'BTC'
         is_buy = (payload.action.lower() == "buy")
         avg_price = None
         price_precision = 0

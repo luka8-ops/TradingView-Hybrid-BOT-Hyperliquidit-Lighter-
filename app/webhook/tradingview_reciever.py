@@ -41,15 +41,15 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
 
     try:
         # Map payload data to Hyperliquid parameters
-        coin = payload.symbol.replace("USDT", "") # 'ETHUSDT' -> 'ETH'
+        ticker = payload.symbol.replace("USDT", "") # 'ETHUSDT' -> 'ETH'
         is_buy = (payload.action.lower() == "buy")
         
         # Place the main order (Market order for simplicity)
         order_result = exchange.order(
-            coin=coin, 
+            coin=ticker, 
             is_buy=is_buy, 
             sz=payload.size, 
-            px=1000000 if is_buy else 0.01, # Aggressive price to ensure market execution
+            limit_px=1000000 if is_buy else 0.01, # Aggressive price to ensure market execution
             order_type={"limit": {"tif": "Gtc"}}
         )
         logger.info(f"Main order placed: {order_result}")
@@ -59,7 +59,7 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
         logger.info(f"Order filled at avg price: {avg_price}")
 
         # Update leverage
-        exchange.update_leverage(payload.leverage, coin)
+        exchange.update_leverage(payload.leverage, ticker)
         logger.info(f"Leverage updated to: {payload.leverage}")
 
         # Calculate TP/SL prices
@@ -71,10 +71,10 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
         # Place TP order
         tp_order_type = {"trigger": {"triggerPx": str(tp_price), "isMarket": False, "tpsl": "tp"}}
         tp_result = exchange.order(
-            coin=coin, 
+            coin=ticker, 
             is_buy=not is_buy, 
             sz=payload.size, 
-            px=str(tp_price), 
+            limit_px=str(tp_price), 
             order_type=tp_order_type, 
             reduce_only=True
         )
@@ -83,10 +83,10 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
         # Place SL order
         sl_order_type = {"trigger": {"triggerPx": str(sl_price), "isMarket": False, "tpsl": "sl"}}
         sl_result = exchange.order(
-            coin=coin, 
+            coin=ticker, 
             is_buy=not is_buy, 
             sz=payload.size, 
-            px=str(sl_price), 
+            limit_px=str(sl_price), 
             order_type=sl_order_type, 
             reduce_only=True
         )

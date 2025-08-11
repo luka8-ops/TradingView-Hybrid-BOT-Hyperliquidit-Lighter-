@@ -18,7 +18,6 @@ class TradingViewPayload(BaseModel):
     passphrase: str
     symbol: str
     action: str  # 'Buy' or 'Sell'
-    entry_price: float
     leverage: int
     size: float
     tp_percent: float

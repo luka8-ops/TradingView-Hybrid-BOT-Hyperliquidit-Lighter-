@@ -46,6 +46,10 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
         avg_price = None
         price_precision = 0
 
+        # Update leverage
+        exchange.update_leverage(payload.leverage, ticker, False)  # False = Isolated
+        logger.info(f"Leverage updated to: {payload.leverage}")
+
         # Place the main order (Market order for simplicity)
         order_result = exchange.market_open(ticker, is_buy, payload.size)
         if order_result["status"] == "ok":
@@ -62,10 +66,6 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
         # Get filled price from the order response
         avg_price = float(order_result['response']['data']['statuses'][0]['filled']['avgPx'])
         logger.info(f"Order filled at avg price: {avg_price}")
-
-        # Update leverage
-        exchange.update_leverage(payload.leverage, ticker)
-        logger.info(f"Leverage updated to: {payload.leverage}")
 
         # Calculate TP/SL prices
         tp_price = avg_price * (1 + (payload.tp_percent / 100) / payload.leverage) if is_buy else avg_price * (1 - (payload.tp_percent / 100) / payload.leverage)

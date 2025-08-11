@@ -78,7 +78,7 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
             name=ticker, 
             is_buy=not is_buy, 
             sz=payload.size, 
-            limit_px=str(tp_price), 
+            limit_px=tp_price, 
             order_type=tp_order_type, 
             reduce_only=True
         )
@@ -90,7 +90,7 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
             name=ticker, 
             is_buy=not is_buy, 
             sz=payload.size, 
-            limit_px=str(sl_price), 
+            limit_px=sl_price, 
             order_type=sl_order_type, 
             reduce_only=True
         )

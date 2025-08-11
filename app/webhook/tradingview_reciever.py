@@ -46,7 +46,7 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
         
         # Place the main order (Market order for simplicity)
         order_result = exchange.order(
-            coin=ticker, 
+            name=ticker, 
             is_buy=is_buy, 
             sz=payload.size, 
             limit_px=1000000 if is_buy else 0.01, # Aggressive price to ensure market execution
@@ -71,7 +71,7 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
         # Place TP order
         tp_order_type = {"trigger": {"triggerPx": str(tp_price), "isMarket": False, "tpsl": "tp"}}
         tp_result = exchange.order(
-            coin=ticker, 
+            name=ticker, 
             is_buy=not is_buy, 
             sz=payload.size, 
             limit_px=str(tp_price), 
@@ -83,7 +83,7 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
         # Place SL order
         sl_order_type = {"trigger": {"triggerPx": str(sl_price), "isMarket": False, "tpsl": "sl"}}
         sl_result = exchange.order(
-            coin=ticker, 
+            name=ticker, 
             is_buy=not is_buy, 
             sz=payload.size, 
             limit_px=str(sl_price), 

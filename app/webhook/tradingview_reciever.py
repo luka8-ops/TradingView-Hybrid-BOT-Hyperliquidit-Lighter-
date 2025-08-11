@@ -78,7 +78,7 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
         logger.info(f"Calculated TP Price: {tp_price_rounded}, SL Price: {sl_price_rounded}")
         
         # Place TP order
-        tp_order_type = {"trigger": {"triggerPx": tp_price_rounded, "isMarket": False, "tpsl": "tp"}}
+        tp_order_type = {"trigger": {"triggerPx": tp_price_rounded, "isMarket": True, "tpsl": "tp"}}
         tp_result = exchange.order(
             name=ticker, 
             is_buy=not is_buy, 
@@ -90,7 +90,7 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
         logger.info(f"TP order placed: {tp_result}")
 
         # Place SL order
-        sl_order_type = {"trigger": {"triggerPx": sl_price_rounded, "isMarket": False, "tpsl": "sl"}}
+        sl_order_type = {"trigger": {"triggerPx": sl_price_rounded, "isMarket": True, "tpsl": "sl"}}
         sl_result = exchange.order(
             name=ticker, 
             is_buy=not is_buy, 

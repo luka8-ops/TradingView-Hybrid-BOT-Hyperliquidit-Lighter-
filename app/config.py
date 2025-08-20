@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     TRADINGVIEW_PASSPHRASE: str
 
     class Config:
-        pass
+        env_file = ".env"
+        env_file_encoding = "utf-8"
 
 settings = Settings()

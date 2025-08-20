@@ -47,8 +47,8 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
         price_precision = 0
 
         # Update leverage
-        exchange.update_leverage(payload.leverage, ticker, False)  # False = Isolated
-        logger.info(f"Leverage updated to: {payload.leverage}")
+        # exchange.update_leverage(payload.leverage, ticker, False)  # False = Isolated
+        # logger.info(f"Leverage updated to: {payload.leverage}")
 
         # Place the main order (Market order for simplicity)
         order_result = exchange.market_open(ticker, is_buy, payload.size)
@@ -67,9 +67,13 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
         avg_price = float(order_result['response']['data']['statuses'][0]['filled']['avgPx'])
         logger.info(f"Order filled at avg price: {avg_price}")
 
-        # Calculate TP/SL prices
-        tp_price = avg_price * (1 + (payload.tp_percent / 100) / payload.leverage) if is_buy else avg_price * (1 - (payload.tp_percent / 100) / payload.leverage)
-        sl_price = avg_price * (1 - (payload.sl_percent / 100) / payload.leverage) if is_buy else avg_price * (1 + (payload.sl_percent / 100) / payload.leverage)
+        # Calculate TP/SL prices with leverage 
+        # tp_price = avg_price * (1 + (payload.tp_percent / 100) / payload.leverage) if is_buy else avg_price * (1 - (payload.tp_percent / 100) / payload.leverage)
+        # sl_price = avg_price * (1 - (payload.sl_percent / 100) / payload.leverage) if is_buy else avg_price * (1 + (payload.sl_percent / 100) / payload.leverage)
+
+        # Calculate TP/SL prices without leverage
+        tp_price = avg_price * (1 + (payload.tp_percent / 100)) if is_buy else avg_price * (1 - (payload.tp_percent / 100))
+        sl_price = avg_price * (1 - (payload.sl_percent / 100)) if is_buy else avg_price * (1 + (payload.sl_percent / 100))
 
         # Round the calculated prices to the correct precision
         tp_price_rounded = round(tp_price, price_precision)

@@ -67,13 +67,9 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
         avg_price = float(order_result['response']['data']['statuses'][0]['filled']['avgPx'])
         logger.info(f"Order filled at avg price: {avg_price}")
 
-        # Calculate TP/SL prices with leverage 
-        tp_price = avg_price * (1 + (payload.tp_percent / 100) / payload.leverage) if is_buy else avg_price * (1 - (payload.tp_percent / 100) / payload.leverage)
-        sl_price = avg_price * (1 - (payload.sl_percent / 100) / payload.leverage) if is_buy else avg_price * (1 + (payload.sl_percent / 100) / payload.leverage)
-
-        # Calculate TP/SL prices without leverage
-        # tp_price = avg_price * (1 + (payload.tp_percent / 100)) if is_buy else avg_price * (1 - (payload.tp_percent / 100))
-        # sl_price = avg_price * (1 - (payload.sl_percent / 100)) if is_buy else avg_price * (1 + (payload.sl_percent / 100))
+        # Calculate TP/SL prices  
+        tp_price = avg_price * (1 + (payload.tp_percent / 100)) if is_buy else avg_price * (1 - (payload.tp_percent / 100))
+        sl_price = avg_price * (1 - (payload.sl_percent / 100)) if is_buy else avg_price * (1 + (payload.sl_percent / 100))
 
         # Round the calculated prices to the correct precision
         tp_price_rounded = round(tp_price, price_precision)
@@ -87,7 +83,7 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
             name=ticker, 
             is_buy=not is_buy, 
             sz=payload.size, 
-            limit_px=tp_price_rounded, 
+            limit_px=7000, 
             order_type=tp_order_type, 
             reduce_only=True
         )
@@ -99,7 +95,7 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
             name=ticker, 
             is_buy=not is_buy, 
             sz=payload.size, 
-            limit_px=sl_price_rounded, 
+            limit_px=1000, 
             order_type=sl_order_type, 
             reduce_only=True
         )

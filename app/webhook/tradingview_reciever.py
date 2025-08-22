@@ -22,6 +22,7 @@ class TradingViewPayload(BaseModel):
     size: float
     tp_percent: float
     sl_percent: float
+    tradingview_price: str
 
 @router.post("/tradingview-webhook") 
 async def handle_tradingview_webhook(payload: TradingViewPayload):
@@ -45,6 +46,9 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
         is_buy = (payload.action.lower() == "buy")
         avg_price = None
         price_precision = 0
+        tradingview_price = float(payload.tradingview_price)
+
+        logger.info(f"TradingView trigger price: {tradingview_price}")
 
         # Update leverage
         exchange.update_leverage(payload.leverage, ticker, False)  # False = Isolated

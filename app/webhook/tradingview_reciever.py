@@ -5,6 +5,7 @@ from app.config import settings
 from hyperliquid.utils import constants
 from app.api.hyperliquid_api import setup
 import logging
+import json 
 
 router = APIRouter()
 
@@ -40,9 +41,25 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
         logger.error(f"Failed to setup Hyperliquid client: {e}")
         raise HTTPException(status_code=500, detail="Hyperliquid client setup failed.")
 
+    user_state = info.user_state(address)
+    has_position_for_coin = False
+    positions = []
+    symbol = payload.symbol.replace("USD", "")
+
+    for position in user_state["assetPositions"]:
+        positions.append(position["position"])
+        # Check if there's a position for our coin
+        if position["position"]["coin"] == symbol:
+            has_position_for_coin = True
+
+    # Check if position exists for the coin before placing market order
+    if has_position_for_coin:
+        print(f"Position already open for {symbol}. Skipping market order.")
+        return
+    
     try:
         # Map payload data to Hyperliquid parameters
-        ticker = payload.symbol.replace("USD", "") # 'BTCUSD' -> 'BTC'
+        ticker = symbol
         is_buy = (payload.action.lower() == "buy")
         avg_price = None
         price_precision = 0

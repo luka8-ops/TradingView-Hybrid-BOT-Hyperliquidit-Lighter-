@@ -1,11 +1,10 @@
-# app/webhooks/tv_receiver.py
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from app.config import settings
 import logging
 from app.api.connection_manager import connection_manager
-from app.websocket.track_account_balance import get_current_account_value
-from app.websocket.get_coin_live_price import set_coins_to_track, get_coin_price, coins_to_track
+from app.webhook.calculate_position_size import calculate_dynamic_position_size
+from app.websocket.get_coin_live_price import add_coin_to_track, get_coin_price
 router = APIRouter()
 
 logging.basicConfig(
@@ -23,65 +22,6 @@ class TradingViewPayload(BaseModel):
     tp_percent: float
     sl_percent: float
     tradingview_price: str
-
-def calculate_dynamic_position_size(symbol: str, sl_percent: float, leverage: int) -> float:
-    """
-    Calculate dynamic position size considering leverage.
-    - Use 10% of account value for trading
-    - Risk 2% of that 10% per trade (0.2% of total account)
-    - Account for leverage in position sizing
-    """
-    try:
-        # Get current account value and live price
-        account_value = get_current_account_value()
-        live_price = get_coin_price(symbol)
-        
-        if not live_price:
-            logger.warning(f"No live price for {symbol}, using fallback")
-            return 0.01  # Fallback minimum size
-        
-        # Calculate trading capital (10% of account)
-        trading_capital = account_value * 0.10
-        
-        # Calculate risk amount (2% of trading capital)
-        risk_amount = trading_capital * 0.02
-        
-        # Calculate position size in USD based on stop loss)
-        position_notional_usd = risk_amount / (sl_percent / 100)
-        
-        # Convert to coin quantity (this is the actual position size you need to place)
-        position_size_coins = position_notional_usd / live_price
-        
-        # Round to reasonable precision based on coin
-        if symbol == "BTC":
-            position_size_coins = round(position_size_coins, 3)  # 0.001 BTC precision
-        elif symbol == "ETH":
-            position_size_coins = round(position_size_coins, 3)  # 0.01 ETH precision
-        else:
-            position_size_coins = round(position_size_coins, 2)  # Default precision
-        
-        # Ensure minimum size
-        min_size = 0.001 if symbol == "BTC" else 0.01
-        position_size_coins = max(position_size_coins, min_size)
-        
-        # Calculate actual values for logging
-        actual_notional = position_size_coins * live_price 
-        actual_risk = actual_notional * (sl_percent / 100)
-        
-        logger.info(f"💰 Account: ${account_value:.2f}")
-        logger.info(f"💼 Trading Capital (10%): ${trading_capital:.2f}")
-        logger.info(f"⚠️ Risk Amount (2%): ${risk_amount:.2f}")
-        logger.info(f"🪙 {symbol} Price: ${live_price:.2f}")
-        logger.info(f"🔢 Leverage: {leverage}x")
-        logger.info(f"📦 Position Size: {position_size_coins} {symbol}")
-        logger.info(f"💵 Position Notional: ${actual_notional:.2f}")
-        logger.info(f"📊 Actual Risk: ${actual_risk:.2f} ({(actual_risk / account_value) * 100:.3f}% of account)")
-        
-        return position_size_coins
-        
-    except Exception as e:
-        logger.error(f"Error calculating dynamic position size: {e}")
-        return 0.01  # Return minimum safe size
 
 @router.post("/tradingview-webhook") 
 async def handle_tradingview_webhook(payload: TradingViewPayload):
@@ -103,8 +43,7 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
     has_position_for_coin = False
     positions = []
     symbol = payload.symbol.replace("USD", "")
-    coins_to_track.append(symbol)
-    set_coins_to_track(coins_to_track)
+    add_coin_to_track(symbol)
     live_coin_price = get_coin_price(symbol)
     print(f"Currently tracked prices: {live_coin_price}")
 

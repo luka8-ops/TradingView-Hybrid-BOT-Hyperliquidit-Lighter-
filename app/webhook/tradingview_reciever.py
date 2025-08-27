@@ -93,9 +93,13 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
         avg_price = float(order_result['response']['data']['statuses'][0]['filled']['avgPx'])
         logger.info(f"Order filled at avg price: {avg_price}")
 
-        # Calculate TP/SL prices  
-        tp_price = avg_price * (1 + (payload.tp_percent / 100)) if is_buy else avg_price * (1 - (payload.tp_percent / 100))
-        sl_price = avg_price * (1 - (payload.sl_percent / 100)) if is_buy else avg_price * (1 + (payload.sl_percent / 100))
+        # Calculate the actual asset movement percentage
+        asset_tp_percentage = payload.tp_percent / payload.leverage # 0.15
+        asset_sl_percentage = payload.sl_percent / payload.leverage
+
+        # Calculate TP/SL prices
+        tp_price = avg_price * (1 + (asset_tp_percentage / 100)) if is_buy else avg_price * (1 - (asset_tp_percentage / 100))
+        sl_price = avg_price * (1 - (asset_sl_percentage / 100)) if is_buy else avg_price * (1 + (asset_sl_percentage / 100))
 
         # Round the calculated prices to the correct precision
         tp_price_rounded = round(tp_price, price_precision)

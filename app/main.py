@@ -7,7 +7,7 @@ from app.webhook.tradingview_reciever import router as webhooks_router
 from app.websocket.account_tracker import account_tracker
 from app.api.connection_manager import connection_manager
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
 # Startup & Shutdown logic

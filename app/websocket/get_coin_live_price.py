@@ -38,7 +38,7 @@ def handle_allmids_data(data):
             mids_data = data['data']['mids']
             
             if isinstance(mids_data, dict) and coins_to_track:
-                print(f"💹 Price update at: {timestamp}")
+                # print(f"💹 Price update at: {timestamp}")
 
                 # Extract only the coins we want to track
                 updated_prices = {}
@@ -46,15 +46,13 @@ def handle_allmids_data(data):
                     if coin in mids_data:
                         price = float(mids_data[coin])
                         updated_prices[coin] = price
-                        print(f"   • {coin}: ${price:,.4f}")
+                        # print(f"   • {coin}: ${price:,.4f}")
                 
                 # Update global tracked prices
                 tracked_coins.update(updated_prices)
                     
             elif not coins_to_track:
                 print("⚠️ No coins specified to track. Use set_coins_to_track(['BTC', 'ETH', ...]) first")
-                
-        print("-" * 60)
         
     except Exception as e:
         print(f"❌ Error handling allMids data: {e}")

@@ -16,7 +16,7 @@ def handle_websocket_data(data):
     try:
         # Add timestamp to see when updates arrive
         timestamp = datetime.now().strftime('%H:%M:%S.%f')[:-3]  # Include milliseconds
-        print(f"🕒 Update received at: {timestamp}")
+        # print(f"🕒 Update received at: {timestamp}")
         
         if isinstance(data, dict) and data.get('channel') == 'webData2':
             web_data = data.get('data', {})            
@@ -27,17 +27,16 @@ def handle_websocket_data(data):
             # total_raw_usd = float(margin_summary.get('totalRawUsd', '0'))
             # print(f"📊 Margin Used: ${total_margin_used:.2f}")
             # print(f"📊 Raw USD: ${total_raw_usd:.2f}")
-            print(f"✅ ACCOUNT VALUE: ${account_value:.2f}")
+            # print(f"✅ ACCOUNT VALUE: ${account_value:.2f}")
             if abs(account_value - current_account_value) > 0.01:  # Only log significant changes
                 print(f"🔄 Account value changed: ${current_account_value:.2f} → ${account_value:.2f}")
                 current_account_value = account_value
             else:
                 current_account_value = account_value  # Still update the value
-                print(f"📍 No significant change (threshold: $0.01)")
+                # print(f"📍 No significant change (threshold: $0.01)")
         else:
             print(f"❌ Unexpected data format: {data}")
             
-        print("-" * 50)
         
     except Exception as e:
         print(f"❌ Error extracting account value: {e}")

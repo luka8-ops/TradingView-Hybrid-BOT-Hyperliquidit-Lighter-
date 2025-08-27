@@ -1,12 +1,10 @@
-# app/webhooks/tv_receiver.py
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from app.config import settings
-from hyperliquid.utils import constants
-from app.api.hyperliquid_api import setup
 import logging
-import json 
-
+from app.api.connection_manager import connection_manager
+from app.webhook.calculate_position_size import calculate_dynamic_position_size
+from app.websocket.get_coin_live_price import add_coin_to_track, get_coin_price
 router = APIRouter()
 
 logging.basicConfig(
@@ -36,7 +34,7 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
         raise HTTPException(status_code=401, detail="Invalid passphrase")
     
     try:
-        address, info, exchange = setup(constants.TESTNET_API_URL, skip_ws=True)
+        address, info, exchange = connection_manager.get_connections()
     except Exception as e:
         logger.error(f"Failed to setup Hyperliquid client: {e}")
         raise HTTPException(status_code=500, detail="Hyperliquid client setup failed.")
@@ -45,6 +43,9 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
     has_position_for_coin = False
     positions = []
     symbol = payload.symbol.replace("USD", "")
+    add_coin_to_track(symbol)
+    live_coin_price = get_coin_price(symbol)
+    print(f"Currently tracked prices: {live_coin_price}")
 
     for position in user_state["assetPositions"]:
         positions.append(position["position"])
@@ -58,6 +59,10 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
         return
     
     try:
+        # Calculate dynamic position size WITH LEVERAGE
+        dynamic_size = calculate_dynamic_position_size(symbol, payload.sl_percent, payload.leverage)
+        logger.info(f"🎯 Using dynamic position size: {dynamic_size} {symbol}")
+        
         # Map payload data to Hyperliquid parameters
         ticker = symbol
         is_buy = (payload.action.lower() == "buy")
@@ -72,7 +77,7 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
         logger.info(f"Leverage updated to: {payload.leverage}")
 
         # Place the main order (Market order for simplicity)
-        order_result = exchange.market_open(ticker, is_buy, payload.size)
+        order_result = exchange.market_open(ticker, is_buy, dynamic_size)
         if order_result["status"] == "ok":
             for status in order_result["response"]["data"]["statuses"]:
                 try:
@@ -103,7 +108,7 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
         tp_result = exchange.order(
             name=ticker, 
             is_buy=not is_buy, 
-            sz=payload.size, 
+            sz=dynamic_size, 
             limit_px=7000, 
             order_type=tp_order_type, 
             reduce_only=True
@@ -115,7 +120,7 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
         sl_result = exchange.order(
             name=ticker, 
             is_buy=not is_buy, 
-            sz=payload.size, 
+            sz=dynamic_size, 
             limit_px=1000, 
             order_type=sl_order_type, 
             reduce_only=True

@@ -32,6 +32,9 @@ def setup(base_url=None, skip_ws=False, perp_dexs=None):
     spot_user_state = info.spot_user_state(address)
     margin_summary = user_state["marginSummary"]
 
+    print(f"Account Value: ${margin_summary['accountValue']}")
+    print(spot_user_state["balances"])
+
     if float(margin_summary["accountValue"]) == 0 and len(spot_user_state["balances"]) == 0:
         print("Not running the example because the provided account has no equity.")
         url = info.base_url.split(".", 1)[1]

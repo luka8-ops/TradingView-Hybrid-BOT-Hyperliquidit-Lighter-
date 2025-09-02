@@ -38,5 +38,5 @@ def setup(base_url=None, skip_ws=False, perp_dexs=None):
         error_string = f"No accountValue:\nIf you think this is a mistake, make sure that {address} has a balance on {url}.\nIf address shown is your API wallet address, update the config to specify the address of your account, not the address of the API wallet."
         raise Exception(error_string)
     
-    exchange = Exchange(account, base_url, account_address=address, perp_dexs=perp_dexs)
+    exchange = Exchange(account, base_url, vault_address="0x712fa55530c25d2502b66e87d178809e206a354f", account_address=address, perp_dexs=perp_dexs)
     return address, info, exchange

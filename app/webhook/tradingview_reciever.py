@@ -13,6 +13,15 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+def clean_symbol(symbol: str) -> str:
+    """Remove USD/USDT suffixes to get base symbol"""
+    symbol = symbol.upper()
+    if symbol.endswith("USDT"):
+        return symbol[:-4]  # Remove last 4 characters (USDT)
+    elif symbol.endswith("USD"):
+        return symbol[:-3]  # Remove last 3 characters (USD)
+    return symbol  # Return as-is if no suffix
+
 class TradingViewPayload(BaseModel):
     passphrase: str
     symbol: str
@@ -41,7 +50,8 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
     user_state = info.user_state(address)
     has_position_for_coin = False
     positions = []
-    symbol = payload.symbol.replace("USD", "")
+
+    symbol = clean_symbol(payload.symbol)
     add_coin_to_track(symbol)
     live_coin_price = get_coin_price(symbol)
     print(f"Currently tracked prices: {live_coin_price}")
@@ -91,6 +101,7 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
         # Get filled price from the order response
         avg_price = float(order_result['response']['data']['statuses'][0]['filled']['avgPx'])
         logger.info(f"Order filled at avg price: {avg_price}")
+        logger.info(f"Difference between TradingView price and filled price: {abs(tradingview_price - avg_price)}")
 
         # Calculate TP/SL prices
         tp_price = avg_price * (1 + (payload.tp_percent / 100)) if is_buy else avg_price * (1 - (payload.tp_percent / 100))

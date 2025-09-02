@@ -17,15 +17,15 @@ def setup(base_url=None, skip_ws=False, perp_dexs=None):
     secret_key = get_secret_key()
     account: LocalAccount = eth_account.Account.from_key(secret_key)
     
-    address = settings.HYPERLIQUID_ACCOUNT_ADDRESS
-    if not address:
-        address = account.address
-        print("Using wallet address as account address:", address)
-    else:
-        print("Running with account address:", address)
+    address = account.address
+    # if not address:
+    #     address = account.address
+    #     print("Using wallet address as account address:", address)
+    # else:
+    #     print("Running with account address:", address)
         
-    if address != account.address:
-        print("Running with agent address:", account.address)
+    # if address != account.address:
+    #     print("Running with agent address:", account.address)
 
     info = Info(base_url, skip_ws, perp_dexs=perp_dexs)
     user_state = info.user_state(address)
@@ -33,7 +33,7 @@ def setup(base_url=None, skip_ws=False, perp_dexs=None):
     margin_summary = user_state["marginSummary"]
 
     print(f"Account Value: ${margin_summary['accountValue']}")
-    print(spot_user_state["balances"])
+    print(spot_user_state)
 
     if float(margin_summary["accountValue"]) == 0 and len(spot_user_state["balances"]) == 0:
         print("Not running the example because the provided account has no equity.")

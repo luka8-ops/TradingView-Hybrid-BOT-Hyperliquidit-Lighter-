@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     HYPERLIQUID_SECRET_KEY: str
     HYPERLIQUID_ACCOUNT_ADDRESS: str
     TRADINGVIEW_PASSPHRASE: str
+    HYPERLIQUID_VAULT_ADDRESS: str
 
     class Config:
         env_file = ".env"

@@ -16,7 +16,11 @@ def get_secret_key():
 def setup(base_url=None, skip_ws=False, perp_dexs=None):
     secret_key = get_secret_key()
     account: LocalAccount = eth_account.Account.from_key(secret_key)
-    
+
+    vault_address = settings.HYPERLIQUID_VAULT_ADDRESS
+    if not vault_address:
+        print("Vault address missing!")
+
     address = settings.HYPERLIQUID_ACCOUNT_ADDRESS
     if not address:
         address = account.address
@@ -38,5 +42,5 @@ def setup(base_url=None, skip_ws=False, perp_dexs=None):
         error_string = f"No accountValue:\nIf you think this is a mistake, make sure that {address} has a balance on {url}.\nIf address shown is your API wallet address, update the config to specify the address of your account, not the address of the API wallet."
         raise Exception(error_string)
 
-    exchange = Exchange(account, base_url, account_address=address, perp_dexs=perp_dexs)
+    exchange = Exchange(account, base_url, vault_address=vault_address, account_address=address, perp_dexs=perp_dexs)
     return address, info, exchange

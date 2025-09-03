@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 # Startup & Shutdown logic
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
+    # Startup 
     logger.info("🚀 Starting Trading Bot API...")
     try:
         # Start account tracker in background

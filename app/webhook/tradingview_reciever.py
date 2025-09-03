@@ -20,6 +20,8 @@ def clean_symbol(symbol: str) -> str:
         return symbol[:-4]  # Remove last 4 characters (USDT)
     elif symbol.endswith("USD"):
         return symbol[:-3]  # Remove last 3 characters (USD)
+    elif symbol.endswith("USDT.P"): 
+        return symbol[:-6]  # Remove last 6 characters (USDT.P)
     return symbol  # Return as-is if no suffix
 
 class TradingViewPayload(BaseModel):

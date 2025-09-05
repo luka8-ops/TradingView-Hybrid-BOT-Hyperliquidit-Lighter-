@@ -3,9 +3,8 @@ from pydantic import BaseModel
 from app.config import settings
 import logging
 from app.api.connection_manager import connection_manager
-from app.webhook.calculate_position_size import calculate_dynamic_position_size
-from app.websocket.get_coin_live_price import add_coin_to_track, get_coin_price
 router = APIRouter()
+import time
 
 logging.basicConfig(
     level=logging.INFO,
@@ -24,6 +23,17 @@ def clean_symbol(symbol: str) -> str:
         return symbol[:-6]  # Remove last 6 characters (USDT.P)
     return symbol  # Return as-is if no suffix
 
+def get_price_precision(symbol: str) -> int:
+    """Get appropriate price precision for different symbols"""
+    if symbol in ["BTC", "ETH"]:
+        return 0  # $50,123.0
+    elif symbol in ["SOL"]:
+        return 2  # $202.34
+    elif symbol in ["NEAR", "DOT"]:
+        return 3  # $12.456
+    else:
+        return 4  # $1.2345 (for smaller coins)
+
 class TradingViewPayload(BaseModel):
     passphrase: str
     symbol: str
@@ -31,7 +41,10 @@ class TradingViewPayload(BaseModel):
     leverage: int
     tp_percent: float
     sl_percent: float
+    size: float
     tradingview_price: str
+
+current_leverage = 20    # Default leverage
 
 @router.post("/tradingview-webhook") 
 async def handle_tradingview_webhook(payload: TradingViewPayload):
@@ -39,6 +52,8 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
     Receives and validates webhook alerts from TradingView and executes trades on Hyperliquid.
     """
     logger.info(f"Received webhook payload: {payload.model_dump_json()}")
+    received_payload_time = time.time()
+    global current_leverage
 
     if payload.passphrase != settings.TRADINGVIEW_PASSPHRASE:
         raise HTTPException(status_code=401, detail="Invalid passphrase")
@@ -52,12 +67,8 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
     user_state = info.user_state(address)
     has_position_for_coin = False
     positions = []
-
     symbol = clean_symbol(payload.symbol)
-    add_coin_to_track(symbol)
-    live_coin_price = get_coin_price(symbol)
-    print(f"Currently tracked prices: {live_coin_price}")
-
+    
     for position in user_state["assetPositions"]:
         positions.append(position["position"])
         # Check if there's a position for our coin
@@ -70,25 +81,26 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
         return
     
     try:
-        # Calculate dynamic position size WITH LEVERAGE
-        dynamic_size = calculate_dynamic_position_size(symbol, payload.sl_percent, payload.leverage)
-        logger.info(f"🎯 Using dynamic position size: {dynamic_size} {symbol}")
-        
         # Map payload data to Hyperliquid parameters
+        size = payload.size
         ticker = symbol
         is_buy = (payload.action.lower() == "buy")
         avg_price = None
-        price_precision = 0
+        price_precision = get_price_precision(symbol)
         tradingview_price = float(payload.tradingview_price)
 
         logger.info(f"TradingView trigger price: {tradingview_price}")
-
+        
         # Update leverage
-        exchange.update_leverage(payload.leverage, ticker, False)  # False = Isolated
-        logger.info(f"Leverage updated to: {payload.leverage}")
+        if current_leverage != payload.leverage:
+            current_leverage = payload.leverage
+            exchange.update_leverage(payload.leverage, ticker, False)  # False = Isolated
+            logger.info(f"Leverage updated to: {payload.leverage}")
 
         # Place the main order (Market order for simplicity)
-        order_result = exchange.market_open(ticker, is_buy, dynamic_size)
+        order_result = exchange.market_open(ticker, is_buy, size)
+        latency = time.time() - received_payload_time
+        logger.info(f"Order placement latency: {latency:.3f} seconds")
         if order_result["status"] == "ok":
             for status in order_result["response"]["data"]["statuses"]:
                 try:
@@ -122,7 +134,7 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
         tp_result = exchange.order(
             name=ticker, 
             is_buy=not is_buy, 
-            sz=dynamic_size, 
+            sz=size, 
             limit_px=limit_price_mock, 
             order_type=tp_order_type, 
             reduce_only=True
@@ -134,7 +146,7 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
         sl_result = exchange.order(
             name=ticker, 
             is_buy=not is_buy, 
-            sz=dynamic_size, 
+            sz=size, 
             limit_px=limit_price_mock, 
             order_type=sl_order_type, 
             reduce_only=True

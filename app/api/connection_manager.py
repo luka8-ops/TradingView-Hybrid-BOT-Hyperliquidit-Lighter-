@@ -31,7 +31,7 @@ class ConnectionManager:
         """Initialize connections if not already done"""
         if not self._initialized:
             try:
-                self.address, self.info, self.exchange = setup(constants.TESTNET_API_URL, skip_ws=False)
+                self.address, self.info, self.exchange = setup(constants.TESTNET_API_URL, skip_ws=True)
                 self._initialized = True
                 logger.info(f"✅ Connection manager initialized for address: {self.address}")
             except Exception as e:

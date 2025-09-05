@@ -13,7 +13,7 @@ def get_secret_key():
         raise ValueError("Environment variable HYPERLIQUID_SECRET_KEY not set.")
     return secret_key
 
-def setup(base_url=None, skip_ws=False, perp_dexs=None):
+def setup(base_url=None, skip_ws=True, perp_dexs=None):
     secret_key = get_secret_key()
     account: LocalAccount = eth_account.Account.from_key(secret_key)
 

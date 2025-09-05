@@ -54,4 +54,31 @@ class AccountTracker:
             logger.info("Account tracker stopped")
 
 # Global instance
-account_tracker = AccountTracker()
+# account_tracker = AccountTracker()
+
+    # try:
+    #     # Unsubscribe from account updates
+    #     await account_tracker.stop()
+    #     logger.info("✅ Account tracker stopped")
+        
+    #     # Disconnect WebSocket
+    #     address, info, exchange = connection_manager.get_connections()
+    #     info.disconnect_websocket()
+    #     logger.info("✅ WebSocket disconnected")
+        
+    # except Exception as e:
+    #     logger.error(f"❌ Error during shutdown: {e}")
+
+    # try:
+    #     # Unsubscribe from account updates
+    #     await account_tracker.stop()
+    #     logger.info("✅ Account tracker stopped")
+        
+    #     # Disconnect WebSocket
+    #     address, info, exchange = connection_manager.get_connections()
+    #     info.disconnect_websocket()
+    #     logger.info("✅ WebSocket disconnected")
+        
+    # except Exception as e:
+    #     logger.error(f"❌ Error during shutdown: {e}")
+    

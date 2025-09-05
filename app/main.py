@@ -2,50 +2,50 @@
 from fastapi import FastAPI
 import asyncio
 import logging
+import signal
+import sys
+import traceback
 from contextlib import asynccontextmanager
 from app.webhook.tradingview_reciever import router as webhooks_router
-from app.websocket.account_tracker import account_tracker
-from app.api.connection_manager import connection_manager
 
-logging.basicConfig(level=logging.WARNING)
+logging.basicConfig(level=logging.INFO)  # Change to INFO to see what's happening
 logger = logging.getLogger(__name__)
+
+# ✅ ADD EXCEPTION HANDLER
+def handle_exception(exc_type, exc_value, exc_traceback):
+    if issubclass(exc_type, KeyboardInterrupt):
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
+    
+    logger.error("❌ UNCAUGHT EXCEPTION:", exc_info=(exc_type, exc_value, exc_traceback))
+
+sys.excepthook = handle_exception
 
 # Startup & Shutdown logic
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup 
     logger.info("🚀 Starting Trading Bot API...")
-    try:
-        # Start account tracker in background
-        await account_tracker.start()
-        logger.info("✅ Account tracker initialized")
-    except Exception as e:
-        logger.error(f"❌ Failed to start account tracker: {e}")
     
     yield
     
     # Shutdown
     logger.info("🛑 Shutting down Trading Bot API...")
-    try:
-        # Unsubscribe from account updates
-        await account_tracker.stop()
-        logger.info("✅ Account tracker stopped")
-        
-        # Disconnect WebSocket
-        address, info, exchange = connection_manager.get_connections()
-        info.disconnect_websocket()
-        logger.info("✅ WebSocket disconnected")
-        
-    except Exception as e:
-        logger.error(f"❌ Error during shutdown: {e}")
-    
     logger.info("✅ Shutdown completed")
-    
+
 app = FastAPI(
     title="Trading Bot API",
     description="Backend to receive TradingView webhooks and execute trades on Hyperliquid.",
-    lifespan=lifespan
+    lifespan=lifespan  # Re-enable this to see shutdown logs
 )
+
+# ✅ ADD GLOBAL EXCEPTION HANDLER
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    logger.error(f"❌ GLOBAL EXCEPTION: {exc}")
+    logger.error(f"❌ Request: {request.url}")
+    logger.error(f"❌ Traceback: {traceback.format_exc()}")
+    return {"error": "Internal server error", "detail": str(exc)}
 
 app.include_router(webhooks_router, tags=["Webhooks"])
 
@@ -53,9 +53,6 @@ app.include_router(webhooks_router, tags=["Webhooks"])
 def read_root():
     return {"message": "Trading Bot API is running."}
 
-@app.get("/account-balance")
-def get_balance():
-    """Get current account balance"""
-    from app.websocket.track_account_balance import get_current_account_value
-    return {"account_value": get_current_account_value()}
-
+@app.get("/health")
+def health_check():
+    return {"status": "healthy"}

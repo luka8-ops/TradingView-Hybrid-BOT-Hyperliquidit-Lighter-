@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from app.config import settings
 import logging
 from app.api.connection_manager import connection_manager
+from app.front_payload.trade_config import get_config
 router = APIRouter()
 import time
 
@@ -38,11 +39,8 @@ class TradingViewPayload(BaseModel):
     passphrase: str
     symbol: str
     action: str  # 'buy' or 'sell'
-    leverage: int
-    tp_percent: float
-    sl_percent: float
-    size: float
     tradingview_price: str
+    # Note: leverage, tp_percent, sl_percent, size will come from frontend config
 
 current_leverage = 20    # Default leverage
 
@@ -50,6 +48,7 @@ current_leverage = 20    # Default leverage
 async def handle_tradingview_webhook(payload: TradingViewPayload):
     """
     Receives and validates webhook alerts from TradingView and executes trades on Hyperliquid.
+    Uses stored configuration for leverage, TP/SL percentages, and position size.
     """
     logger.info(f"Received webhook payload: {payload.model_dump_json()}")
     received_payload_time = time.time()
@@ -57,6 +56,11 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
 
     if payload.passphrase != settings.TRADINGVIEW_PASSPHRASE:
         raise HTTPException(status_code=401, detail="Invalid passphrase")
+    
+    # Get stored configuration for this symbol
+    symbol = clean_symbol(payload.symbol)
+    config = get_config(symbol)
+    logger.info(f"📋 Using stored config for {symbol}: {config}")
     
     try:
         address, info, exchange = connection_manager.get_connections()
@@ -67,7 +71,6 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
     user_state = info.user_state(address)
     has_position_for_coin = False
     positions = []
-    symbol = clean_symbol(payload.symbol)
     
     for position in user_state["assetPositions"]:
         positions.append(position["position"])
@@ -81,21 +84,26 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
         return
     
     try:
-        # Map payload data to Hyperliquid parameters
-        size = payload.size
+        # Use configuration values instead of payload values
+        size = config["size"]
+        leverage = config["leverage"]
+        tp_percent = config["tp_percent"]
+        sl_percent = config["sl_percent"]
+        
         ticker = symbol
         is_buy = (payload.action.lower() == "buy")
         avg_price = None
         price_precision = get_price_precision(symbol)
         tradingview_price = float(payload.tradingview_price)
 
-        logger.info(f"TradingView trigger price: {tradingview_price}")
+        logger.info(f"🎯 TradingView trigger price: {tradingview_price}")
+        logger.info(f"📊 Trading with config - Size: {size}, Leverage: {leverage}x, TP: {tp_percent}%, SL: {sl_percent}%")
         
         # Update leverage
-        if current_leverage != payload.leverage:
-            current_leverage = payload.leverage
-            exchange.update_leverage(payload.leverage, ticker, False)  # False = Isolated
-            logger.info(f"Leverage updated to: {payload.leverage}")
+        if current_leverage != leverage:
+            current_leverage = leverage
+            exchange.update_leverage(leverage, ticker, False)  # False = Isolated
+            logger.info(f"🔧 Leverage updated to: {leverage}x")
 
         # Place the main order (Market order for simplicity)
         order_result = exchange.market_open(ticker, is_buy, size)
@@ -117,9 +125,9 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
         logger.info(f"Order filled at avg price: {avg_price}")
         logger.info(f"Difference between TradingView price and filled price: {abs(tradingview_price - avg_price)}")
 
-        # Calculate TP/SL prices
-        tp_price = avg_price * (1 + (payload.tp_percent / 100)) if is_buy else avg_price * (1 - (payload.tp_percent / 100))
-        sl_price = avg_price * (1 - (payload.sl_percent / 100)) if is_buy else avg_price * (1 + (payload.sl_percent / 100))
+        # Calculate TP/SL prices using config values
+        tp_price = avg_price * (1 + (tp_percent / 100)) if is_buy else avg_price * (1 - (tp_percent / 100))
+        sl_price = avg_price * (1 - (sl_percent / 100)) if is_buy else avg_price * (1 + (sl_percent / 100))
 
         # Round the calculated prices to the correct precision
         tp_price_rounded = round(tp_price, price_precision)

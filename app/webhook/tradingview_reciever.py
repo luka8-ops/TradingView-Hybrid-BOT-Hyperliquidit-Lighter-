@@ -84,26 +84,10 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
         return
     
     try:
-        # Use configuration values instead of payload values
+        # Use configuration values instead values
         size = config["size"]
-        leverage = config["leverage"]
-        tp_percent = config["tp_percent"]
-        sl_percent = config["sl_percent"]
-        
         ticker = symbol
         is_buy = (payload.action.lower() == "buy")
-        avg_price = None
-        price_precision = get_price_precision(symbol)
-        tradingview_price = float(payload.tradingview_price)
-
-        logger.info(f"🎯 TradingView trigger price: {tradingview_price}")
-        logger.info(f"📊 Trading with config - Size: {size}, Leverage: {leverage}x, TP: {tp_percent}%, SL: {sl_percent}%")
-        
-        # Update leverage
-        if current_leverage != leverage:
-            current_leverage = leverage
-            exchange.update_leverage(leverage, ticker, False)  # False = Isolated
-            logger.info(f"🔧 Leverage updated to: {leverage}x")
 
         # Place the main order (Market order for simplicity)
         order_result = exchange.market_open(ticker, is_buy, size)
@@ -119,6 +103,23 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
                     print(f'Error: {status["error"]}')
 
         logger.info(f"Main order placed: {order_result}")
+
+        leverage = config["leverage"]
+        tp_percent = config["tp_percent"]
+        sl_percent = config["sl_percent"]
+        
+        avg_price = None
+        price_precision = get_price_precision(symbol)
+        tradingview_price = float(payload.tradingview_price)
+
+        logger.info(f"🎯 TradingView trigger price: {tradingview_price}")
+        logger.info(f"📊 Trading with config - Size: {size}, Leverage: {leverage}x, TP: {tp_percent}%, SL: {sl_percent}%")
+        
+        # Update leverage
+        if current_leverage != leverage:
+            current_leverage = leverage
+            exchange.update_leverage(leverage, ticker, False)  # False = Isolated
+            logger.info(f"🔧 Leverage updated to: {leverage}x")
         
         # Get filled price from the order response
         avg_price = float(order_result['response']['data']['statuses'][0]['filled']['avgPx'])

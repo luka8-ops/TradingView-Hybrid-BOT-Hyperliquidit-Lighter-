@@ -26,13 +26,12 @@ async def validate_api_key(
     
     # Validate the API key
     if not api_key or api_key != settings.API_KEY:
-        logger.warning(f"❌ Invalid API key attempt: {api_key}")
+        logger.warning(f"Invalid API key attempt: {api_key}")
         raise HTTPException(
             status_code=401, 
             detail="Invalid or missing API key"
         )
     
-    logger.info("✅ API key validated successfully")
     return True
 
 # Frontend configuration payload model
@@ -68,7 +67,7 @@ async def update_frontend_config(
         }
         
     except Exception as e:
-        logger.error(f"❌ Config update error: {e}")
+        logger.error(f"Config update error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/frontend-config/{symbol}")
@@ -84,7 +83,7 @@ async def get_frontend_config(
             "config": config
         }
     except Exception as e:
-        logger.error(f"❌ Error getting config: {e}")
+        logger.error(f"Error getting config: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/get-config")
@@ -98,5 +97,5 @@ async def get_all_frontend_configs(
             "configs": configs
         }
     except Exception as e:
-        logger.error(f"❌ Error getting all configs: {e}")
+        logger.error(f"Error getting all configs: {e}")
         raise HTTPException(status_code=500, detail=str(e))

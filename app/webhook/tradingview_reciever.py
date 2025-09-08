@@ -107,7 +107,7 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
         leverage = config["leverage"]
         tp_percent = config["tp_percent"]
         sl_percent = config["sl_percent"]
-        
+
         avg_price = None
         price_precision = get_price_precision(symbol)
         tradingview_price = float(payload.tradingview_price)
@@ -118,9 +118,9 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
         # Update leverage
         if current_leverage != leverage:
             current_leverage = leverage
-            exchange.update_leverage(leverage, ticker, False)  # False = Isolated
+            exchange.update_leverage(leverage, ticker, True)  # False = Isolated
             logger.info(f"🔧 Leverage updated to: {leverage}x")
-        
+
         # Get filled price from the order response
         avg_price = float(order_result['response']['data']['statuses'][0]['filled']['avgPx'])
         logger.info(f"Order filled at avg price: {avg_price}")
@@ -135,7 +135,7 @@ async def handle_tradingview_webhook(payload: TradingViewPayload):
         sl_price_rounded = round(sl_price, price_precision)
 
         logger.info(f"Calculated TP Price: {tp_price_rounded}, SL Price: {sl_price_rounded}")
-        
+    
         limit_price_mock = round(avg_price * 0.82)
 
         # Place TP order
